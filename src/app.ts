@@ -10,7 +10,7 @@ import config from "./app/config";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
-import z, { success } from "zod";
+import crypto from "crypto";
 
 const app: Application = express();
 
@@ -30,29 +30,20 @@ app.use(cookieParser());
 
 app.use("/api/v1/auth", AuthRoutes);
 
-app.post("/zod", async (req: Request, res: Response) => {
+app.get("/test", async (req: Request, res: Response) => {
 	try {
-		const userZodSchema = z.object({
-			name: z.string().min(20),
-			age: z.number().optional(),
-			email: z.email(),
-			isVerified: z.boolean().optional(),
-			books: z.array(z.string()).optional(),
-		});
-		const payload = req.body;
-		const result = userZodSchema.parse(payload);
-		console.log(result);
+		const otp = crypto.randomInt(100000, 1000000);
 
 		res.status(httpStatus.OK).json({
 			success: true,
 			message: "Welcome to HealthCare",
-			data: result,
+			data: otp,
 		});
 	} catch (error) {
 		console.log(error);
 		res.status(httpStatus.BAD_REQUEST).json({
 			success: true,
-			message: "Welcome to HealthCare",
+			message: "Error to HealthCare",
 			data: error,
 		});
 	}

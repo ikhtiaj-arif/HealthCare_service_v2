@@ -14,6 +14,8 @@ const router = Router();
 router.post("/register",validateRequest(UserValidation.PatientRegistrationZodSchema), AuthController.registerPatient);
 router.post("/login", AuthController.loginUser);
 router.post("/google-login", AuthController.googleLogin);
+router.post("/forgot-password", AuthController.forgotPassword);
+router.post("/reset-password", AuthController.resetPassword);
 router.get(
 	"/me",
 	auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN),

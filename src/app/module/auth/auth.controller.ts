@@ -6,14 +6,12 @@ import type { IRequestUser } from "./auth.interface";
 import { AuthService } from "./auth.service";
 import z from "zod";
 
- 
-
 const registerPatient = catchAsync(async (req: Request, res: Response) => {
 	// const payload = PatientRegistrationZodSchema.safeParse(req.body);
 	// if (!payload.success) {
 	// 	throw new Error(payload.error.message);
 	// }
-  const payload = req.body
+	const payload = req.body;
 	const result = await AuthService.registerPatient(payload);
 
 	const { accessToken, refreshToken, user, patient } = result;
@@ -147,6 +145,28 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
 		},
 	});
 });
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+	await AuthService.forgotPassword(payload);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: `OTP sent to email: ${payload.email}`,
+		data: null,
+	});
+});
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+	 await AuthService.resetPassword(payload);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Password changed successfully!",
+		data: null,
+	});
+});
 
 export const AuthController = {
 	registerPatient,
@@ -154,4 +174,6 @@ export const AuthController = {
 	getMe,
 	refreshToken,
 	googleLogin,
+	forgotPassword,
+	resetPassword,
 };
