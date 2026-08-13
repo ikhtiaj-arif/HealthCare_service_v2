@@ -22,7 +22,9 @@ import type {
 import crypto from "crypto";
 import { redisClient } from "../../lib/redis";
 import { transporter } from "../../lib/nodemailer";
-
+import ejs from "ejs";
+import path from "path";
+ 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
 	const { name, password, patient: patientData } = payload;
 	const email = payload.email.trim().toLowerCase();
@@ -378,12 +380,21 @@ const forgotPassword = async (payload: IForgotPasswordPayload) => {
 		},
 	});
 
+	const templatePath =  path.join(process.cwd(), "src/app/templates/forgot-password.ejs") 
+	const expSec = 5 * 60
+
+	const html = await ejs.renderFile(templatePath, {
+		name: isUserExists.name,
+		otp,
+		expirationMinutes: expSec / 60
+	})
+
 	await transporter.sendMail({from: config.email_sender
 		,
 		to: isUserExists.email,
 		subject: "Forgot Password",
-		text: `Your OTP Is: ${otp}`,
-		// html: ``
+		// text: `Your OTP Is: ${otp}`,
+		html
 	 })
 };
 const resetPassword = async (payload: IResetPasswordPayload) => {
@@ -434,14 +445,21 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
 	})
 
 	await redisClient.del([key])
+	const templatePath =  path.join(process.cwd(), "src/app/templates/reset-password-success.ejs") 
+	const expSec = 5 * 60
 
+	const html = await ejs.renderFile(templatePath, {
+		name: isUserExists.name,
+		
+	})
 		await transporter.sendMail({from: config.email_sender
 		,
 		to: isUserExists.email,
 		subject: "Forgot Updated",
-		text: `Your Password is updated`,
-		// html: ``
+		// text: `Your Password is updated`,
+		html
 	 })
+	 
 };
 
 export const AuthService = {
