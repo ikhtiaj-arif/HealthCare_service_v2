@@ -23,3 +23,10 @@ Send OTP to gmail
    1. Gmail, nodemailer
    2. gmail/ google app password
    3. nodemailer config
+Email verification
+   1. create otp and user data store in redis
+   2. send email with otp using ejs
+   3. registrattion with email verification with storing otp to redis
+image upload using multer and cloudinary for profile image
+   1. create multer middleware to upload image
+   2. 

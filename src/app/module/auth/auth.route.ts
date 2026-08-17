@@ -7,11 +7,18 @@ import { catchAsync } from "../../utils/catchAsync";
 import z from "zod";
 import { validateRequest } from "../../middleware/validateRequest";
 
-
 const router = Router();
- 
 
-router.post("/register",validateRequest(UserValidation.PatientRegistrationZodSchema), AuthController.registerPatient);
+router.post(
+	"/register",
+	validateRequest(UserValidation.PatientRegistrationZodSchema),
+	AuthController.registerPatient,
+);
+router.post(
+	"/verify-email",
+	validateRequest(UserValidation.PatientVerifyEmailZodSchema),
+	AuthController.verifyPatientEmail,
+);
 router.post("/login", AuthController.loginUser);
 router.post("/google-login", AuthController.googleLogin);
 router.post("/forgot-password", AuthController.forgotPassword);
