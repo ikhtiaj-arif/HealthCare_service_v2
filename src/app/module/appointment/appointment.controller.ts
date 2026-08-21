@@ -5,31 +5,33 @@ import { sendResponse } from "../../utils/sendResponse";
 import { AppointmentServices } from "./appointment.service";
 
 const bookAppointment = catchAsync(async (req: Request, res: Response) => {
+	const result = await AppointmentServices.bookAppointment();
 
-    const result = await AppointmentServices.bookAppointment()
- 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
 		message: "Verification OTP sent!",
 		data: result,
-	 
 	});
 });
-const bookAppointmentCallback = catchAsync(async (req: Request, res: Response) => {
-    console.log("req.query",req.query);
+const bookAppointmentCallback = catchAsync(
+	async (req: Request, res: Response) => {
+		const { executedPaymentResult, redirectUrl } =
+			await AppointmentServices.bookAppointmentCallback(req.query);
+		console.log("callback controller: ", executedPaymentResult);
+		res.redirect(redirectUrl);
 
-    const result = await AppointmentServices.bookAppointmentCallback()
- 
-	sendResponse(res, {
-		statusCode: httpStatus.CREATED,
-		success: true,
-		message: "Verification OTP sent!",
-		data: result,
-	 
-	});
-});
+		// sendResponse(res, {
+		// 	statusCode: httpStatus.CREATED,
+		// 	success: true,
+		// 	message: "Verification OTP sent!",
+		// 	data: result,
+
+		// });
+	},
+);
 
 export const AppointmentControllers = {
-    bookAppointment,bookAppointmentCallback
-}
+	bookAppointment,
+	bookAppointmentCallback,
+};
