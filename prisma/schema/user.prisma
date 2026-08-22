@@ -8,14 +8,15 @@ model User {
   emailVerified      Boolean      @default(false)
   role               Role         @default(PATIENT)
   status             UserStatus   @default(ACTIVE)
-  imageUrl           String?       @default("")
-  image_public_id    String?       @default("")
+  imageUrl           String?      @default("")
+  image_public_id    String?      @default("")
   needPasswordChange Boolean      @default(false)
   isDeleted          Boolean      @default(false)
   deletedAt          DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   patient            Patient?
+  doctor             Doctor?
 
   @@unique([email])
   @@map("users")
