@@ -4,6 +4,7 @@ import httpStatus from "http-status";
 import type { IRequestUser } from "./auth.interface";
 import type { Request, Response } from "express";
 import { sendResponse } from "../../utils/sendResponse";
+import { AppError } from "../../utils/appError";
 import z from "zod";
 
 const registerPatient = catchAsync(async (req: Request, res: Response) => {
@@ -112,7 +113,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
 
 	if (!user) {
-		throw new Error("User information is missing in the request");
+		throw new AppError(httpStatus.BAD_REQUEST, "User information is missing in the request");
 	}
 
 	const result = await AuthService.getMe(user);
@@ -126,7 +127,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
 	if (!req.cookies.refreshToken) {
-		throw new Error("Refresh token is missing");
+		throw new AppError(httpStatus.BAD_REQUEST, "Refresh token is missing");
 	}
 	const result = await AuthService.refreshToken(req.cookies.refreshToken);
 	const { accessToken, refreshToken: newRefreshToken } = result;

@@ -4,6 +4,8 @@ import { DoctorServices } from "./doctor.service";
 import { sendResponse } from "../../utils/sendResponse";
 import { ApplyAsDoctorZodValidationSchema } from "./doctor.velidation";
 import httpStatus from "http-status";
+import { AppError } from "../../utils/appError";
+ 
 
 const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as { [filename: string]: Express.Multer.File[] };
@@ -16,7 +18,7 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
   );
 
   if (!zodValidationResult.success)
-    throw new Error(zodValidationResult.error.issues[0].message);
+    throw new AppError(httpStatus.BAD_REQUEST, zodValidationResult.error.issues[0].message);
 
   const payload = zodValidationResult.data;
 
