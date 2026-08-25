@@ -34,5 +34,11 @@ router.post(
 
   DoctorControllers.approveDoctor,
 );
+router.get(
+  "/all-doctors",
+  auth(Role.ADMIN, Role.SUPER_ADMIN),
+
+  DoctorControllers.getAllDoctors,
+);
 
 export const DoctorRoutes = router;

@@ -58,7 +58,18 @@ const approveDoctor = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Doctor Email Verified Successfully",
+    message: "Doctor Reviewed Successfully",
+    data: result,
+  });
+});
+const getAllDoctors = catchAsync(async (req: Request, res: Response) => {
+ 
+  const result = await DoctorServices.getAllDoctors(req.query );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Doctor Retrieved Successfully",
     data: result,
   });
 });
@@ -66,5 +77,5 @@ const approveDoctor = catchAsync(async (req: Request, res: Response) => {
 export const DoctorControllers = {
   applyAsDoctor,
   verifyDoctorEmail,
-  approveDoctor,
+  approveDoctor,getAllDoctors
 };
