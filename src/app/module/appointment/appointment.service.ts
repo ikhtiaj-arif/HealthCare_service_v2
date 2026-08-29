@@ -10,11 +10,12 @@ import { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/appError";
 import httpStatus from "http-status";
 import { IBookAppointmentPayload } from "./appoint.interface";
-import { addMinutes, isBefore, isSameDay } from "date-fns";
+import { addMinutes, isBefore, isSameDay, subHours } from "date-fns";
 import app from "../../../app";
 import { transporter } from "../../lib/nodemailer";
-import  PDFDocument  from "pdfkit";
+import PDFDocument from "pdfkit";
 import { margins } from "pdfkit/js/page";
+import { ref } from "node:process";
 
 const bookAppointment = async (
   payload: IBookAppointmentPayload,
@@ -265,9 +266,13 @@ const cancelAppointment = async (payload: any, user: RequestUser) => {
     const existingAppointment = await tx.appointment.findUnique({
       where: {
         id: appointmentId,
+        patient: {
+          email: user.email,
+        },
       },
       include: {
         payment: true,
+        schedule: true,
       },
     });
     if (!existingAppointment)
@@ -291,54 +296,81 @@ const cancelAppointment = async (payload: any, user: RequestUser) => {
       data: { status: AppointmentStatus.CANCELLED },
     });
 
-    const bkashIdToken = await getBkashIdToken();
-    if (!bkashIdToken)
-      throw new AppError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "No Bkash Access Token Found!",
-      );
-
-    const bkashRefundPaymentResponse = await fetch(
-      `${config.bkash_base_url}/tokenized/checkout/payment/refund`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: bkashIdToken,
-          "X-App-Key": config.bkash_app_key,
-        },
-        body: JSON.stringify({
-          paymentID: existingAppointment.payment?.bkashPaymentId,
-          trxID: existingAppointment.payment?.bkashTrxId,
-          amount: existingAppointment.payment?.amount.toString(),
-          sku: "Appoint cancellation",
-          reason: refundReason,
-        }),
-      },
-    );
-
-    const bkashRefundPaymentResult = await bkashRefundPaymentResponse.json();
-    console.log("💰 bkashRefundPaymentResult:", { bkashRefundPaymentResult });
-
-    // update payment and appointment model after refund
-    const updatePayment = await tx.payment.update({
+    await tx.schedule.update({
       where: {
-        appointmentId: existingAppointment.id,
+        id: existingAppointment.schedule.id,
       },
       data: {
-        refundTrxId: bkashRefundPaymentResult.refundTrxID,
-        refundedAt: bkashRefundPaymentResult.completedTime,
-        refundAmount: bkashRefundPaymentResult.amount,
-        refundReason: refundReason,
-        status: PaymentStatus.REFUNDED,
-        gatewayResponse: bkashRefundPaymentResult,
+        availableSlots: { increment: 1 },
+      },
+    });
+    //refund process
+    const now = new Date();
+    const startDateTime = existingAppointment.schedule.startDateTime; // 25 August : 3:00 PM
+
+    // After 2:00 Pm => no refund
+    // must cancel before  2:00 PM
+    const refundCutOffTime = subHours(startDateTime, 1);
+
+    // now >  refuncCutOff Time => no refund
+    // now < refundCutOff Time => refund eligible
+    const isEligibleForRefund = isBefore(now, refundCutOffTime);
+
+    if (isEligibleForRefund) {
+      const bkashIdToken = await getBkashIdToken();
+      if (!bkashIdToken)
+        throw new AppError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          "No Bkash Access Token Found!",
+        );
+
+      const bkashRefundPaymentResponse = await fetch(
+        `${config.bkash_base_url}/tokenized/checkout/payment/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: bkashIdToken,
+            "X-App-Key": config.bkash_app_key,
+          },
+          body: JSON.stringify({
+            paymentID: existingAppointment.payment?.bkashPaymentId,
+            trxID: existingAppointment.payment?.bkashTrxId,
+            amount: existingAppointment.payment?.amount.toString(),
+            sku: "Appoint cancellation",
+            reason: refundReason,
+          }),
+        },
+      );
+
+      const bkashRefundPaymentResult = await bkashRefundPaymentResponse.json();
+      console.log("💰 bkashRefundPaymentResult:", { bkashRefundPaymentResult });
+
+      // update payment and appointment model after refund
+      const updatePayment = await tx.payment.update({
+        where: {
+          appointmentId: existingAppointment.id,
+        },
+        data: {
+          refundTrxId: bkashRefundPaymentResult.refundTrxID,
+          refundedAt: bkashRefundPaymentResult.completedTime,
+          refundAmount: bkashRefundPaymentResult.amount,
+          refundReason: refundReason,
+          status: PaymentStatus.REFUNDED,
+          gatewayResponse: bkashRefundPaymentResult,
+        },
+      });
+    }
+    const newPaymentInfo = await prisma.payment.findUnique({
+      where: {
+        appointmentId: existingAppointment.id,
       },
     });
 
     return {
       appointment: updateAppointment,
-      payment: updatePayment,
+      payment: newPaymentInfo,
     };
   });
   return transactionResult;
@@ -387,7 +419,7 @@ const bookAppointmentCallback = async (query: Record<string, any>) => {
         include: {
           schedule: true,
           patient: true,
-		  doctor: true
+          doctor: true,
         },
       });
       if (!appointment)
@@ -454,11 +486,11 @@ const bookAppointmentCallback = async (query: Record<string, any>) => {
         pdfChunks.push(chunk);
       });
 
-	  const pdfReadyPromise = new Promise<Buffer>((resolve) => {
-		pdfDocument.on("end", ()=>{
-			resolve(Buffer.concat(pdfChunks))
-		})
-	  })
+      const pdfReadyPromise = new Promise<Buffer>((resolve) => {
+        pdfDocument.on("end", () => {
+          resolve(Buffer.concat(pdfChunks));
+        });
+      });
 
       pdfDocument.fontSize(20).text("Healthcare System", { align: "center" });
       pdfDocument.fontSize(14).text("Appointment Invoice", { align: "center" });
@@ -488,19 +520,19 @@ const bookAppointmentCallback = async (query: Record<string, any>) => {
 
       pdfDocument.end();
 
-	  const pdfBuffer = await pdfReadyPromise
+      const pdfBuffer = await pdfReadyPromise;
 
       await transporter.sendMail({
         from: config.email_sender,
         to: appointment.patient.email,
         subject: "Your Appointment Invoice - Healthcare System",
         text: "Thank you for booking an appointment. Please find your invoice attached.",
-		attachments: [
-			{
-				filename: "invoice.pdf",
-				content: pdfBuffer
-			}
-		]
+        attachments: [
+          {
+            filename: "invoice.pdf",
+            content: pdfBuffer,
+          },
+        ],
       });
       return {
         redirectUrl: `${config.frontend_url}/dashboard/my-appointments?status=success`,
