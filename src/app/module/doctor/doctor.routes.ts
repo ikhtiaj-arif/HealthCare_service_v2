@@ -4,6 +4,8 @@ import { upload } from "../../lib/multer";
 
 import { Role } from "../../../generated/prisma/enums";
 import { auth } from "../../middleware/checkAuth";
+import { validateRequest } from "../../middleware/validateRequest";
+import { UpdateDoctorProfileValidationZodSchema } from "./doctor.velidation";
 
 const router = Router();
 
@@ -40,5 +42,21 @@ router.get(
 
   DoctorControllers.getAllDoctors,
 );
+router.patch(
+  "/update-my-profile",
+  auth(Role.DOCTOR),
+  validateRequest(UpdateDoctorProfileValidationZodSchema),
+  DoctorControllers.updateDoctorProfile,
+);
+
+// Public doctor-discovery routes (no auth) — meant for patients browsing before login.
+router.get(
+  "/public/available-today",
+  DoctorControllers.getAvailableDoctorByTodaysSchedule,
+);
+
+router.get("/public/all-doctors", DoctorControllers.getAllDoctorsListPublic);
+
+router.get("/public/:doctorId", DoctorControllers.getSingleDoctorPublicProfile);
 
 export const DoctorRoutes = router;
