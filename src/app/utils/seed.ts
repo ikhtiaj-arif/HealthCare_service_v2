@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { Role } from "../../generated/prisma/enums";
+import { DoctorVerificationStatus, Role } from "../../generated/prisma/enums";
 import { prisma } from "../lib/prisma";
 import config from "../config";
  
@@ -122,7 +122,7 @@ export const seedTesterDoctor = async () => {
 
 		const name = config.tester_doctor_name;
 		const email = config.tester_doctor_email;
-		const password = config.tester_admin_password;
+		const password = config.tester_doctor_password;
 
 		if (!name || !email || !password) {
 			throw new AppError(
@@ -151,7 +151,8 @@ export const seedTesterDoctor = async () => {
 						experienceYears: 4,
 						licenseNumber: "BMDC0000",
 						qualifications: "MBBS",
-						specialization: "Neurology"
+						specialization: "Neurology",
+						verificationStatus: DoctorVerificationStatus.APPROVED,
 					}
 				}
 			},

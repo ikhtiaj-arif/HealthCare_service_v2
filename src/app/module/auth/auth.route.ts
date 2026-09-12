@@ -20,6 +20,7 @@ router.post(
 	AuthController.verifyPatientEmail,
 );
 router.post("/login", AuthController.loginUser);
+router.post("/logout", AuthController.logoutUser);
 router.post("/google-login", AuthController.googleLogin);
 router.post("/forgot-password", AuthController.forgotPassword);
 router.post("/reset-password", AuthController.resetPassword);

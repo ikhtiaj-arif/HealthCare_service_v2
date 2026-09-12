@@ -33,7 +33,7 @@ router.get("/todays-schedule", ScheduleController.getTodaysSchedules);
 
 router.patch(
     "/update-schedule/:scheduleId",
-    auth(Role.DOCTOR),
+    // auth(Role.DOCTOR),
     validateRequest(UpdateScheduleValidationZodSchema),
     ScheduleController.updateSchedule,
 );

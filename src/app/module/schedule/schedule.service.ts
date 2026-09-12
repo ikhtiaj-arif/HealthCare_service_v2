@@ -63,8 +63,8 @@ const createSchedule = async (
     );
 
   const durationInMinutes = differenceInMinutes(
-    payload.startDateTime,
     payload.endDateTime,
+    payload.startDateTime,
   );
 
   const MINUTES_ALLOCATED_PER_SLOT = 20;
