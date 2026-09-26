@@ -13,10 +13,10 @@
   <body>
     <div class="container">
       <h2>Application Update</h2>
-      <p>Hello Dr. <%= name %>, thank you for applying to PH Healthcare System.</p>
+      <p>Hello Dr. <%= locals.name %>, thank you for applying to PH Healthcare System.</p>
       <p>After review, we are unable to approve your application at this time.</p>
-      <% if (reason) { %>
-        <div class="reason"><strong>Reason:</strong> <%= reason %></div>
+      <% if (locals.reason) { %>
+        <div class="reason"><strong>Reason:</strong> <%= locals.reason %></div>
       <% } %>
       <div class="footer">&copy; PH Healthcare System. All rights reserved.</div>
     </div>

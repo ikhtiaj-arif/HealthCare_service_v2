@@ -21,10 +21,11 @@ import {
   IVerifyDoctorEmailPayload,
 } from "./doctor.interface";
 import { RequestUser } from "../../middleware/checkAuth";
-import { is } from "zod/locales";
 import { IQuery } from "../../interfaces";
 import { DoctorWhereInput } from "../../../generated/prisma/models";
 import { AppError } from "../../utils/appError";
+import { getRandomPassword } from "../../utils/getRandomPassword";
+import { devLog, isDev } from "../../utils/devLog";
 import httpStatus from "http-status";
 import { addDays, startOfDay } from "date-fns";
 
@@ -98,7 +99,7 @@ const applyAsDoctor = async (
     }),
   );
 
-  const randomDoctorPassword = Math.random().toString(36).slice(-8);
+  const randomDoctorPassword = getRandomPassword(12);
   const hashedPassword = await bcrypt.hash(
     randomDoctorPassword,
     Number(config.bcrypt_salt_rounds),
@@ -132,6 +133,8 @@ const applyAsDoctor = async (
   const expirationSeconds = 60 * 60;
   const otpKey = `doctor-application-otp:${payload.user.email}`;
   const otpValue = crypto.randomInt(100000, 1000000).toString();
+
+  devLog(payload.user.email, otpValue);
 
   await redisClient.set(otpKey, otpValue, {
     expiration: {
@@ -214,7 +217,7 @@ const approveDoctor = async (
   reviewer: RequestUser,
 ) => {
   const { doctorId, verificationStatus, rejectionReason } = payload;
-
+  
   const existingDoctor = await prisma.doctor.findUnique({
     where: {
       id: doctorId,
@@ -253,20 +256,22 @@ const approveDoctor = async (
     );
   }
 
-  const updateDoctor = await prisma.doctor.update({
-    where: { id: doctorId },
-    data: {
-      verificationStatus,
-      rejectionReason:
-        verificationStatus === DoctorVerificationStatus.REJECTED
-          ? rejectionReason
-          : null,
-      reviewedBy: reviewer.userId,
-      reviewedAt: new Date(),
-    },
-  });
-
   const isApproved = verificationStatus === DoctorVerificationStatus.APPROVED;
+
+  let plainPassword: string | null = null;
+  let hashedPassword: string | null = null;
+
+  if (isApproved) {
+    plainPassword = getRandomPassword(12);
+    hashedPassword = await bcrypt.hash(
+      plainPassword,
+      Number(config.bcrypt_salt_rounds),
+    );
+
+    devLog(
+      `doctor approved, generated password for ${existingDoctor.email} -> ${plainPassword}`,
+    );
+  }
 
   const templatePath = path.join(
     process.cwd(),
@@ -274,10 +279,37 @@ const approveDoctor = async (
   );
 
   const templateData = {
-    name: updateDoctor.name,
-    email: updateDoctor.email,
+    name: existingDoctor.name,
+    email: existingDoctor.email,
+    password: plainPassword,
+    reason: isApproved ? null : rejectionReason,
   };
+
   const html = await ejs.renderFile(templatePath, templateData);
+
+  const updateDoctor = await prisma.$transaction(async (tx) => {
+    const reviewedDoctor = await tx.doctor.update({
+      where: { id: doctorId },
+      data: {
+        verificationStatus,
+        rejectionReason: isApproved ? null : rejectionReason,
+        reviewedBy: reviewer.userId,
+        reviewedAt: new Date(),
+      },
+    });
+
+    if (hashedPassword) {
+      await tx.user.update({
+        where: { id: existingDoctor.user.id },
+        data: {
+          password: hashedPassword,
+          needPasswordChange: true,
+        },
+      });
+    }
+
+    return reviewedDoctor;
+  });
 
   await transporter.sendMail({
     from: config.email_sender,
@@ -287,6 +319,8 @@ const approveDoctor = async (
       : "Your Doctor Application Has Been Rejected",
     html,
   });
+
+  return updateDoctor;
 };
 
 const getAllDoctors = async (query: IQuery) => {

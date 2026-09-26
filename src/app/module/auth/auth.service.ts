@@ -28,6 +28,7 @@ import path from "path";
  
 import httpStatus from "http-status";
 import { AppError } from "../../utils/appError";
+import { devLog, isDev } from "../../utils/devLog";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
 	const { name, password, patient: patientData } = payload;
@@ -45,6 +46,8 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 
 	const otp = crypto.randomInt(100000, 1000000).toString();
 	const otpKey = `patient-registration-otp:${email}`;
+
+	devLog(email, otp);
 
 	await redisClient.set(otpKey, otp, {
 		expiration: {
@@ -286,9 +289,7 @@ const refreshToken = async (token: string) => {
 	if (!verifiedRefreshToken.success || !verifiedRefreshToken.data) {
 		throw new AppError(
 			httpStatus.UNAUTHORIZED,
-			config.node_env === "development"
-				? verifiedRefreshToken.error
-				: "Invalid refresh token",
+			isDev() ? verifiedRefreshToken.error : "Invalid refresh token",
 		);
 	}
 
@@ -498,6 +499,8 @@ const forgotPassword = async (payload: IForgotPasswordPayload) => {
 
 	const otp = crypto.randomInt(100000, 1000000).toString();
 	const key = `forgot_password-otp:${isUserExists.email}`;
+
+	devLog(isUserExists.email, otp);
 
 	await redisClient.set(key, otp, {
 		expiration: {

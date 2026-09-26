@@ -6,14 +6,38 @@
     <style>
       body { font-family: Arial, sans-serif; background: #f7f7f7; color: #333; }
       .container { max-width: 500px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+      .credentials { margin-top: 20px; border: 1px solid #e4e4e4; border-radius: 6px; overflow: hidden; }
+      .credentials-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #e4e4e4; }
+      .credentials-row:last-child { border-bottom: none; }
+      .credentials-label { font-weight: bold; color: #555; }
+      .credentials-value { font-family: 'Courier New', monospace; word-break: break-all; text-align: right; }
+      .alert { margin-top: 20px; padding: 12px 16px; background: #fff8e6; border-left: 4px solid #f0ad00; color: #6b4e00; }
+      .alert strong { color: #8a6100; }
       .footer { margin-top: 30px; font-size: 12px; color: #888; }
     </style>
   </head>
   <body>
     <div class="container">
-      <h2>Congratulations, Dr. <%= name %>!</h2>
+      <h2>Congratulations, Dr. <%= locals.name %>!</h2>
       <p>Your application to join PH Healthcare System as a doctor has been reviewed and approved.</p>
       <p>You can now log in and start managing your schedule and consultations.</p>
+      <% if (locals.password) { %>
+        <p>Use the credentials below to sign in to your doctor account:</p>
+        <div class="credentials">
+          <div class="credentials-row">
+            <span class="credentials-label">Email</span>
+            <span class="credentials-value"><%= locals.email %></span>
+          </div>
+          <div class="credentials-row">
+            <span class="credentials-label">Password</span>
+            <span class="credentials-value"><%= locals.password %></span>
+          </div>
+        </div>
+        <div class="alert">
+          <strong>Please change this password immediately after your first login.</strong>
+          This is a temporary password generated for you, and you will be asked to set a new one as soon as you sign in.
+        </div>
+      <% } %>
       <div class="footer">&copy; PH Healthcare System. All rights reserved.</div>
     </div>
   </body>
