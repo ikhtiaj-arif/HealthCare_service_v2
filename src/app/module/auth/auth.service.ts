@@ -267,6 +267,17 @@ const getMe = async (user: IRequestUser) => {
 		},
 		include: {
 			patient: true,
+			// The client uses this as a positive signal that a DOCTOR has a profile,
+			// so every doctor-only screen can explain itself instead of failing a
+			// request. Only the fields that card renders, not the whole row.
+			doctor: {
+				select: {
+					id: true,
+					name: true,
+					specialization: true,
+					verificationStatus: true,
+				},
+			},
 		},
 		omit: {
 			password: true,

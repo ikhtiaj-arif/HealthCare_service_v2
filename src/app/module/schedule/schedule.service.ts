@@ -8,6 +8,7 @@ import {
 import { prisma } from "../../lib/prisma";
 import { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/appError";
+import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import {
   ICreateSchedulePayload,
   IUpdateSchedulePayload,
@@ -21,13 +22,7 @@ const createSchedule = async (
   payload: ICreateSchedulePayload,
   user: RequestUser,
 ) => {
-  const doctor = await prisma.doctor.findUnique({
-    where: {
-      userId: user.userId,
-    },
-  });
-  if (!doctor)
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor profile not found");
+  const doctor = await getDoctorProfileOrThrow(user.userId);
 
   if (isAfter(payload.startDateTime, payload.endDateTime)) // 9 PM to 3 PM !it should be 3 PM to 9 PM
     throw new AppError(
@@ -113,13 +108,7 @@ const getMySchedules = async (query: IQuery, user: RequestUser) => {
   // }
 
   // const skip = (page - 1) * limit;
-  const doctor = await prisma.doctor.findUnique({
-    where: {
-      userId: user.userId,
-    },
-  });
-  if (!doctor)
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor profile not found");
+  const doctor = await getDoctorProfileOrThrow(user.userId);
 
   const andConditions: ScheduleWhereInput[] = [
     {
@@ -270,13 +259,7 @@ const updateSchedule = async (
   payload: IUpdateSchedulePayload,
   user: RequestUser,
 ) => {
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!doctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const doctor = await getDoctorProfileOrThrow(user.userId);
   const schedule = await prisma.schedule.findUnique({
     where: { id: scheduleId, doctorId: doctor.id },
   });
@@ -378,13 +361,7 @@ const updateSchedule = async (
 };
 
 const publishSchedule = async (scheduleId: string, user: RequestUser) => {
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!doctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const doctor = await getDoctorProfileOrThrow(user.userId);
 
   const schedule = await prisma.schedule.findUnique({
     where: { id: scheduleId, doctorId: doctor.id },
@@ -406,13 +383,7 @@ const publishSchedule = async (scheduleId: string, user: RequestUser) => {
   return publishedSchedule;
 };
 const deleteSchedule = async (scheduleId: string, user: RequestUser) => {
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!doctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const doctor = await getDoctorProfileOrThrow(user.userId);
 
   const schedule = await prisma.schedule.findUnique({
     where: { id: scheduleId, doctorId: doctor.id },
@@ -462,8 +433,7 @@ const getTodaysSchedules = async (query: IQuery) => {
   const sortBy = query.sortBy ? query.sortBy : "createdAt";
   const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
-  const now = new Date();
-  const startOfToday = startOfDay(now);
+  const startOfToday = startOfDay(new Date());
   const startOfTomorrow = addDays(startOfToday, 1);
 
   const andConditions: ScheduleWhereInput[] = [
@@ -480,7 +450,6 @@ const getTodaysSchedules = async (query: IQuery) => {
       startDateTime: {
         gte: startOfToday,
         lt: startOfTomorrow,
-        gt: now,
       },
     },
     {

@@ -9,6 +9,7 @@ import { getBkashIdToken } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
 import { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/appError";
+import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import httpStatus from "http-status";
 import {
   IBookAppointmentPayload,
@@ -594,13 +595,7 @@ const updateAppointmentStatus = async (
   payload: IUpdateAppointmentPayload,
   user: RequestUser,
 ) => {
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!doctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const doctor = await getDoctorProfileOrThrow(user.userId);
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId, doctorId: doctor.id },
   });
@@ -728,13 +723,7 @@ const getDoctorAppointments = async (query: IQuery, user: RequestUser) => {
   const sortBy = query.sortBy ? query.sortBy : "createdAt";
   const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!doctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const doctor = await getDoctorProfileOrThrow(user.userId);
 
   const andConditions: AppointmentWhereInput[] = [
     {

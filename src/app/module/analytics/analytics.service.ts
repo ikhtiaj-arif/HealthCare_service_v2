@@ -7,6 +7,7 @@ import {
 import { prisma } from "../../lib/prisma";
 import { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/appError";
+import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import httpStatus from "http-status";
 
 const getAdminAnalytics = async () => {
@@ -148,13 +149,7 @@ const getPatientAnalytics = async (user: RequestUser) => {
   };
 };
 const getDoctorAnalytics = async (user: RequestUser) => {
-  const doctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!doctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const doctor = await getDoctorProfileOrThrow(user.userId);
 
   const totalSchedules = await prisma.schedule.count({
     where: { doctorId: doctor.id, isDeleted: false },

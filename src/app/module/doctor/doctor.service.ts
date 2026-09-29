@@ -24,6 +24,7 @@ import { RequestUser } from "../../middleware/checkAuth";
 import { IQuery } from "../../interfaces";
 import { DoctorWhereInput } from "../../../generated/prisma/models";
 import { AppError } from "../../utils/appError";
+import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import { getRandomPassword } from "../../utils/getRandomPassword";
 import { devLog, isDev } from "../../utils/devLog";
 import httpStatus from "http-status";
@@ -429,13 +430,7 @@ const updateDoctorProfile = async (
   payload: IUpdateDoctorProfilePayload,
   user: RequestUser,
 ) => {
-  const existingDoctor = await prisma.doctor.findUnique({
-    where: { userId: user.userId },
-  });
-
-  if (!existingDoctor) {
-    throw new AppError(httpStatus.NOT_FOUND, "Doctor Profile Not Found");
-  }
+  const existingDoctor = await getDoctorProfileOrThrow(user.userId);
 
   const updatedDoctor = await prisma.doctor.update({
     where: { id: existingDoctor.id },

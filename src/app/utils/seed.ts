@@ -107,22 +107,60 @@ export const seedTesterAdmin = async () => {
 
 // create tester doctor
 
+const testerDoctorProfile = (name: string, email: string) => ({
+	email,
+	name,
+	experienceYears: 4,
+	licenseNumber: "BMDC0000",
+	qualifications: "MBBS",
+	specialization: "Neurology",
+	verificationStatus: DoctorVerificationStatus.APPROVED,
+});
+
 export const seedTesterDoctor = async () => {
 	try {
 		const isTesterDoctorExist = await prisma.user.findUnique({
 			where: {
 				email: config.tester_doctor_email,
 			},
+			include: {
+				doctor: true,
+			},
 		});
-
-		if (isTesterDoctorExist) {
-			console.log("Tester Doctor Already Exists!");
-			return;
-		}
 
 		const name = config.tester_doctor_name;
 		const email = config.tester_doctor_email;
 		const password = config.tester_doctor_password;
+
+		if (isTesterDoctorExist) {
+			if (isTesterDoctorExist.doctor) {
+				console.log("Tester Doctor Already Exists!");
+				return;
+			}
+
+			// The user row survived but its doctor profile did not (deleted by hand, or
+			// created before this seed nested a profile). Every doctor-only endpoint
+			// 404s/403s without it, so backfill it instead of returning early.
+			// Deliberately not using the outer catch below: that one deletes the user
+			// row, which would destroy the account we are trying to repair.
+			try {
+				const repairedProfile = await prisma.doctor.create({
+					data: {
+						...testerDoctorProfile(name, email),
+						userId: isTesterDoctorExist.id,
+					},
+				});
+
+				console.log("Tester Doctor Profile Repaired : ", repairedProfile);
+			} catch (repairError) {
+				console.log(
+					"Error Repairing Tester Doctor Profile (user left intact) : ",
+					repairError,
+				);
+			}
+
+			return;
+		}
 
 		if (!name || !email || !password) {
 			throw new AppError(
@@ -145,15 +183,7 @@ export const seedTesterDoctor = async () => {
 				needPasswordChange: false,
 				emailVerified: true,
 				doctor: {
-					create: {
-						email,
-						name,
-						experienceYears: 4,
-						licenseNumber: "BMDC0000",
-						qualifications: "MBBS",
-						specialization: "Neurology",
-						verificationStatus: DoctorVerificationStatus.APPROVED,
-					}
+					create: testerDoctorProfile(name, email),
 				}
 			},
 		});
