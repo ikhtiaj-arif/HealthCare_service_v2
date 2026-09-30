@@ -41,7 +41,7 @@ const bookAppointment = async (
     if (!patient)
       throw new AppError(httpStatus.NOT_FOUND, "Patient Profile not found");
 
-    const schedule = await prisma.schedule.findUnique({
+    const schedule = await tx.schedule.findUnique({
       where: { id: payload.scheduleId },
       include: { doctor: true },
     });
@@ -137,56 +137,70 @@ const bookAppointment = async (
       },
     });
 
-    const bkashIdToken = await getBkashIdToken();
-    if (!bkashIdToken)
-      throw new AppError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "No Bkash Access Token Found!",
-      );
+    return { appointment, amount };
+  });
 
-    const bkashCreatePaymentResponse = await fetch(
-      `${config.bkash_base_url}/tokenized/checkout/create`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: bkashIdToken,
-          "X-App-Key": config.bkash_app_key,
-        },
-        body: JSON.stringify({
-          // agreementID: "TokenizedMerchant01L3IKB6H1565072174986", // appointment id
-          mode: "0011",
-          // payerReference: "01723888888", // user email or phone number
-          payerReference: user.email, // user email or phone number
-          callbackURL: `${config.bkash_callback_url}/appointment/book-appointment/payment/callback`,
-          // merchantAssociationInfo: "MI05MID54RF09123456One",
-          amount: amount,
-          currency: "BDT",
-          intent: "sale",
-          // merchantInvoiceNumber: "Inv0124", // appointment id
-          merchantInvoiceNumber: appointment.id, // appointment id
-        }),
-      },
+  // The bKash calls sit deliberately outside the transaction. A transaction
+  // holds a pooled connection open for its whole duration, and these are two
+  // sequential network round-trips to a third party, so doing them inline
+  // blocked a connection for the duration of the gateway's latency.
+  //
+  // If this step fails the PENDING appointment is left behind on purpose: that
+  // is the same state payAppointment resumes from, so the patient can retry
+  // payment without losing the booking.
+  const { appointment, amount } = transactionResult;
+
+  const bkashIdToken = await getBkashIdToken();
+  if (!bkashIdToken)
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "No Bkash Access Token Found!",
     );
 
-    const bkashCreatePaymentResult = await bkashCreatePaymentResponse.json();
-
-    // payment model create
-    const payment = await tx.payment.create({
-      data: {
-        merchantInvoiceNumber: bkashCreatePaymentResult.merchantInvoiceNumber,
-        appointmentId: appointment.id,
-        amount: amount,
-        gatewayResponse: bkashCreatePaymentResult,
-        bkashPaymentId: bkashCreatePaymentResult.paymentID,
-        payerReference: user.email,
+  const bkashCreatePaymentResponse = await fetch(
+    `${config.bkash_base_url}/tokenized/checkout/create`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: bkashIdToken,
+        "X-App-Key": config.bkash_app_key,
       },
-    });
+      body: JSON.stringify({
+        mode: "0011",
+        payerReference: user.email, // user email or phone number
+        callbackURL: `${config.bkash_callback_url}/appointment/book-appointment/payment/callback`,
+        amount: amount,
+        currency: "BDT",
+        intent: "sale",
+        merchantInvoiceNumber: appointment.id, // appointment id
+      }),
+    },
+  );
 
-    return { paymentUrl: bkashCreatePaymentResult.bkashURL };
+  const bkashCreatePaymentResult = await bkashCreatePaymentResponse.json();
+
+  if (!bkashCreatePaymentResult?.bkashURL) {
+    throw new AppError(
+      httpStatus.BAD_GATEWAY,
+      "Could not start the bKash payment. Please try again.",
+    );
+  }
+
+  // payment model create
+  const payment = await prisma.payment.create({
+    data: {
+      merchantInvoiceNumber: bkashCreatePaymentResult.merchantInvoiceNumber,
+      appointmentId: appointment.id,
+      amount: amount,
+      gatewayResponse: bkashCreatePaymentResult,
+      bkashPaymentId: bkashCreatePaymentResult.paymentID,
+      payerReference: user.email,
+    },
   });
-  return transactionResult;
+
+  return { paymentUrl: bkashCreatePaymentResult.bkashURL };
 };
 
 const payAppointment = async (
