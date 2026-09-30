@@ -68,7 +68,10 @@ const getAllPayments = async (query: IQuery) => {
     andConditions.push({
       appointment: {
         patient: {
-          email: query.email,
+          email: {
+            contains: query.patientEmail,
+            mode: "insensitive",
+          },
         },
       },
     });
