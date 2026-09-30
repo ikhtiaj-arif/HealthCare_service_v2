@@ -5,7 +5,11 @@ import { upload } from "../../lib/multer";
 import { Role } from "../../../generated/prisma/enums";
 import { auth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
-import { UpdateDoctorProfileValidationZodSchema } from "./doctor.velidation";
+import {
+  ApproveDoctorZodSchema,
+  UpdateDoctorProfileValidationZodSchema,
+  VerifyDoctorEmailZodSchema,
+} from "./doctor.velidation";
 
 const router = Router();
 
@@ -27,13 +31,13 @@ router.post(
 
 router.post(
   "/apply-as-doctor/verify-email",
-
+  validateRequest(VerifyDoctorEmailZodSchema),
   DoctorControllers.verifyDoctorEmail,
 );
 router.post(
   "/approve-doctor",
   auth(Role.ADMIN, Role.SUPER_ADMIN),
-
+  validateRequest(ApproveDoctorZodSchema),
   DoctorControllers.approveDoctor,
 );
 router.get(

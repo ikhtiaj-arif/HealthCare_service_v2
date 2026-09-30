@@ -19,11 +19,27 @@ router.post(
 	validateRequest(UserValidation.PatientVerifyEmailZodSchema),
 	AuthController.verifyPatientEmail,
 );
-router.post("/login", AuthController.loginUser);
+router.post(
+	"/login",
+	validateRequest(UserValidation.LoginZodSchema),
+	AuthController.loginUser,
+);
 router.post("/logout", AuthController.logoutUser);
-router.post("/google-login", AuthController.googleLogin);
-router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
+router.post(
+	"/google-login",
+	validateRequest(UserValidation.GoogleLoginZodSchema),
+	AuthController.googleLogin,
+);
+router.post(
+	"/forgot-password",
+	validateRequest(UserValidation.ForgotPasswordZodSchema),
+	AuthController.forgotPassword,
+);
+router.post(
+	"/reset-password",
+	validateRequest(UserValidation.ResetPasswordZodSchema),
+	AuthController.resetPassword,
+);
 router.get(
 	"/me",
 	auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN),
