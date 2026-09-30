@@ -211,14 +211,14 @@ const payAppointment = async (
   if (existingAppointment.status !== AppointmentStatus.PENDING) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `Doctor has not set a consultation fee yet`,
+      `Appointment is Already ${existingAppointment.status.toUpperCase()}`,
     );
   }
 
   if (!existingAppointment?.schedule?.doctor?.consultationFee)
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `Appointment is Already ${existingAppointment.status.toUpperCase()}`,
+      `Doctor has not set a consultation fee yet`,
     );
 
   const amount =
