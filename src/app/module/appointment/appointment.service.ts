@@ -219,10 +219,30 @@ const payAppointment = async (
           doctor: true,
         },
       },
+      patient: {
+        select: {
+          userId: true,
+        },
+      },
     },
   });
   if (!existingAppointment)
     throw new AppError(httpStatus.NOT_FOUND, "Appointment Does Not Exist");
+
+  // The route is PATIENT-only, so the only thing that identifies "whose"
+  // appointment this is has to be checked here. Without it any authenticated
+  // patient could pass an arbitrary id and open a bKash checkout against someone
+  // else's appointment: the gateway ids below are written to that appointment's
+  // payment row, and paying it confirms their slot, so the victim is booked in
+  // and the payer is not the patient being treated. Same check as
+  // `getSingleAppointment`, compared on `userId` rather than email because
+  // `checkAuth` re-reads the user by id and treats the two as distinct.
+  if (existingAppointment.patient.userId !== user.userId)
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not allowed to pay for this appointment",
+    );
+
   if (existingAppointment.status !== AppointmentStatus.PENDING) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
