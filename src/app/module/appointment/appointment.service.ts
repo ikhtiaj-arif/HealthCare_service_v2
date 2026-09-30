@@ -9,6 +9,7 @@ import { getBkashIdToken } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
 import { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/appError";
+import { parseSort, APPOINTMENT_SORTABLE_FIELDS } from "../../utils/sort";
 import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import httpStatus from "http-status";
 import {
@@ -670,8 +671,7 @@ const getMyAppointments = async (query: IQuery, user: RequestUser) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, APPOINTMENT_SORTABLE_FIELDS);
 
   const patient = await prisma.patient.findUnique({
     where: { userId: user.userId },
@@ -720,8 +720,7 @@ const getDoctorAppointments = async (query: IQuery, user: RequestUser) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, APPOINTMENT_SORTABLE_FIELDS);
 
   const doctor = await getDoctorProfileOrThrow(user.userId);
 
@@ -768,8 +767,7 @@ const getAllAppointments = async (query: IQuery, user: RequestUser) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, APPOINTMENT_SORTABLE_FIELDS);
 
   const andConditions: AppointmentWhereInput[] = [];
 

@@ -24,6 +24,11 @@ import { RequestUser } from "../../middleware/checkAuth";
 import { IQuery } from "../../interfaces";
 import { DoctorWhereInput } from "../../../generated/prisma/models";
 import { AppError } from "../../utils/appError";
+import {
+  parseSort,
+  DOCTOR_SORTABLE_FIELDS,
+  SCHEDULE_SORTABLE_FIELDS,
+} from "../../utils/sort";
 import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import { getRandomPassword } from "../../utils/getRandomPassword";
 import { devLog, isDev } from "../../utils/devLog";
@@ -329,8 +334,7 @@ const getAllDoctors = async (query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, DOCTOR_SORTABLE_FIELDS);
 
   const andConditions: DoctorWhereInput[] = [];
 
@@ -444,8 +448,12 @@ const getAvailableDoctorByTodaysSchedule = async (query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  // This endpoint reuses one sortBy for both the doctor and its nested
+  // schedules, so it has to accept the union of both models' columns.
+  const { sortBy, sortOrder } = parseSort(query, [
+    ...DOCTOR_SORTABLE_FIELDS,
+    ...SCHEDULE_SORTABLE_FIELDS,
+  ]);
 
   const now = new Date();
   const startOfToday = startOfDay(now);
@@ -552,8 +560,7 @@ const getAllDoctorsListPublic = async (query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, DOCTOR_SORTABLE_FIELDS);
 
   const andConditions: DoctorWhereInput[] = [
     { isDeleted: false },

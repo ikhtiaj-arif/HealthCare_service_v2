@@ -8,6 +8,7 @@ import {
 import { prisma } from "../../lib/prisma";
 import { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/appError";
+import { parseSort, SCHEDULE_SORTABLE_FIELDS } from "../../utils/sort";
 import { getDoctorProfileOrThrow } from "../../utils/doctorProfile";
 import {
   ICreateSchedulePayload,
@@ -94,8 +95,7 @@ const getMySchedules = async (query: IQuery, user: RequestUser) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, SCHEDULE_SORTABLE_FIELDS);
 
   // let limit = 10;
   // if (query.limit) {
@@ -160,8 +160,7 @@ const getAllSchedules = async (query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, SCHEDULE_SORTABLE_FIELDS);
 
   const andConditions: ScheduleWhereInput[] = [];
 
@@ -433,8 +432,7 @@ const getTodaysSchedules = async (query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  const sortBy = query.sortBy ? query.sortBy : "createdAt";
-  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+  const { sortBy, sortOrder } = parseSort(query, SCHEDULE_SORTABLE_FIELDS);
 
   const startOfToday = startOfDay(new Date());
   const startOfTomorrow = addDays(startOfToday, 1);
