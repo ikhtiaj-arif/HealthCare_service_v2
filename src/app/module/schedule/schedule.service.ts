@@ -165,6 +165,8 @@ const getAllSchedules = async (query: IQuery) => {
 
   const andConditions: ScheduleWhereInput[] = [];
 
+  andConditions.push({ isDeleted: false });
+
   if (query.doctorId) {
     andConditions.push({ doctorId: query.doctorId });
   }
