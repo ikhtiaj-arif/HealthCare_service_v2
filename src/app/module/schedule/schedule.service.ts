@@ -415,9 +415,10 @@ const deleteSchedule = async (scheduleId: string, user: RequestUser) => {
 
 const getTodaysSchedules = async (query: IQuery) => {
   if (!query.doctorId) {
+    // 404 would blame a doctor that was never looked up; this is a bad request.
     throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Doctor Id Must Be Provided In Query",
+      httpStatus.BAD_REQUEST,
+      "doctorId Must Be Provided In Query",
     );
   }
 
