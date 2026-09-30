@@ -303,6 +303,7 @@ const updateSchedule = async (
 
   const existingScheduleOnThisDate = await prisma.schedule.findFirst({
     where: {
+      id: { not: scheduleId },
       doctorId: doctor.id,
       isDeleted: false,
       startDateTime: {
