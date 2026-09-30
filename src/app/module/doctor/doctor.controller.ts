@@ -9,12 +9,30 @@ import { AppError } from "../../utils/appError";
 const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as { [filename: string]: Express.Multer.File[] };
 
-  const resume = files?.["resume"][0];
+  // `files?.["resume"][0]` only guarded `files` itself, so a multipart body
+  // that carried additionalFiles but no resume part threw a TypeError here and
+  // surfaced as a 500.
+  const resume = files?.["resume"]?.[0];
+
+  if (!resume)
+    throw new AppError(httpStatus.BAD_REQUEST, "No resume file provided");
+
   const additionalFiles = files?.["additionalFiles"] || [];
 
-  const zodValidationResult = ApplyAsDoctorZodValidationSchema.safeParse(
-    JSON.parse(req.body.data),
-  );
+  // This route is multipart, so the JSON payload travels in a `data` form field
+  // and cannot go through validateRequest. Parse it here and report a missing or
+  // malformed field as a 400 rather than letting JSON.parse throw.
+  let rawPayload: unknown;
+  try {
+    rawPayload = JSON.parse(req.body.data);
+  } catch {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Request body must include a `data` form field containing the JSON payload",
+    );
+  }
+
+  const zodValidationResult = ApplyAsDoctorZodValidationSchema.safeParse(rawPayload);
 
   if (!zodValidationResult.success)
     throw new AppError(
@@ -24,11 +42,6 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
 
   const payload = zodValidationResult.data;
 
-  console.log({
-    resume,
-    additionalFiles,
-    payload,
-  });
   const result = await DoctorServices.applyAsDoctor(
     payload,
     resume,
