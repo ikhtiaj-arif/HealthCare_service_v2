@@ -26,6 +26,7 @@ import { DoctorWhereInput } from "../../../generated/prisma/models";
 import { AppError } from "../../utils/appError";
 import {
   parseSort,
+  parseRelationSort,
   DOCTOR_SORTABLE_FIELDS,
   SCHEDULE_SORTABLE_FIELDS,
 } from "../../utils/sort";
@@ -448,12 +449,16 @@ const getAvailableDoctorByTodaysSchedule = async (query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
-  // This endpoint reuses one sortBy for both the doctor and its nested
-  // schedules, so it has to accept the union of both models' columns.
-  const { sortBy, sortOrder } = parseSort(query, [
-    ...DOCTOR_SORTABLE_FIELDS,
-    ...SCHEDULE_SORTABLE_FIELDS,
-  ]);
+  // This endpoint orders the doctor *and* its nested schedules, which are
+  // different models with different columns, so the sort column is routed to
+  // whichever model owns it instead of being applied to both.
+  const { outerField, innerField, sortOrder } = parseRelationSort(query, {
+    fields: DOCTOR_SORTABLE_FIELDS,
+    fallback: "createdAt",
+  }, {
+    fields: SCHEDULE_SORTABLE_FIELDS,
+    fallback: "startDateTime",
+  });
 
   const now = new Date();
   const startOfToday = startOfDay(now);
@@ -505,7 +510,7 @@ const getAvailableDoctorByTodaysSchedule = async (query: IQuery) => {
     skip,
 
     orderBy: {
-      [sortBy]: sortOrder,
+      [outerField]: sortOrder,
     },
 
     select: {
@@ -529,7 +534,7 @@ const getAvailableDoctorByTodaysSchedule = async (query: IQuery) => {
             gt: now,
           },
         },
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [innerField]: sortOrder },
         select: {
           id: true,
           startDateTime: true,
