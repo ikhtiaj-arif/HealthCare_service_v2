@@ -15,8 +15,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "type": "module",
+  "license": "ISC", 
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
