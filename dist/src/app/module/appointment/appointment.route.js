@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AppointmentRoutes = void 0;
+const express_1 = require("express");
+const appointment_controller_1 = require("./appointment.controller");
+const checkAuth_1 = require("../../middleware/checkAuth");
+const enums_1 = require("../../../generated/prisma/enums");
+const validateRequest_1 = require("../../middleware/validateRequest");
+const appointment_validation_1 = require("./appointment.validation");
+const router = (0, express_1.Router)();
+router.post("/book-appointment", (0, checkAuth_1.auth)(enums_1.Role.PATIENT), (0, validateRequest_1.validateRequest)(appointment_validation_1.BookAppointmentValidationZodSchema), appointment_controller_1.AppointmentControllers.bookAppointment);
+router.post("/pay-appointment", (0, checkAuth_1.auth)(enums_1.Role.PATIENT), (0, validateRequest_1.validateRequest)(appointment_validation_1.PayAppointmentValidationZodSchema), appointment_controller_1.AppointmentControllers.payAppointment);
+router.post("/cancel-appointment", (0, checkAuth_1.auth)(enums_1.Role.PATIENT, enums_1.Role.ADMIN, enums_1.Role.SUPER_ADMIN), (0, validateRequest_1.validateRequest)(appointment_validation_1.CancelAppointmentValidationZodSchema), appointment_controller_1.AppointmentControllers.cancelAppointment);
+//book appointment callback url
+router.get("/book-appointment/payment/callback", appointment_controller_1.AppointmentControllers.bookAppointmentCallback);
+router.patch("/update-status/:appointmentId", (0, checkAuth_1.auth)(enums_1.Role.DOCTOR), (0, validateRequest_1.validateRequest)(appointment_validation_1.UpdateAppointmentStatusValidationZodSchema), appointment_controller_1.AppointmentControllers.updateAppointmentStatus);
+router.get("/my-appointments", (0, checkAuth_1.auth)(enums_1.Role.PATIENT), appointment_controller_1.AppointmentControllers.getMyAppointments);
+router.get("/doctor-appointments", (0, checkAuth_1.auth)(enums_1.Role.DOCTOR), appointment_controller_1.AppointmentControllers.getDoctorAppointments);
+router.get("/all-appointments", (0, checkAuth_1.auth)(enums_1.Role.ADMIN, enums_1.Role.SUPER_ADMIN), appointment_controller_1.AppointmentControllers.getAllAppointments);
+router.get("/:appointmentId", (0, checkAuth_1.auth)(enums_1.Role.PATIENT, enums_1.Role.DOCTOR, enums_1.Role.ADMIN, enums_1.Role.SUPER_ADMIN), appointment_controller_1.AppointmentControllers.getSingleAppointment);
+exports.AppointmentRoutes = router;

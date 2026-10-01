@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserRoutes = void 0;
+const express_1 = require("express");
+const user_controller_1 = require("./user.controller");
+const multer_1 = require("../../lib/multer");
+const enums_1 = require("../../../generated/prisma/enums");
+const checkAuth_1 = require("../../middleware/checkAuth");
+const router = (0, express_1.Router)();
+router.patch("/profile-image", (0, checkAuth_1.auth)(enums_1.Role.ADMIN, enums_1.Role.DOCTOR, enums_1.Role.PATIENT, enums_1.Role.SUPER_ADMIN), multer_1.upload.single("profileImage"), user_controller_1.userController.uploadProfileImage);
+exports.UserRoutes = router;

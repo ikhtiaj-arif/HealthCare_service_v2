@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PaymentRoutes = void 0;
+const express_1 = require("express");
+const enums_1 = require("../../../generated/prisma/enums");
+const checkAuth_1 = require("../../middleware/checkAuth");
+const payment_controller_1 = require("./payment.controller");
+const router = (0, express_1.Router)();
+router.get("/my-payments", (0, checkAuth_1.auth)(enums_1.Role.PATIENT), payment_controller_1.PaymentController.getMyPayments);
+router.get("/all-payments", (0, checkAuth_1.auth)(enums_1.Role.ADMIN, enums_1.Role.SUPER_ADMIN), payment_controller_1.PaymentController.getAllPayments);
+router.get("/:paymentId", (0, checkAuth_1.auth)(enums_1.Role.PATIENT, enums_1.Role.ADMIN, enums_1.Role.SUPER_ADMIN), payment_controller_1.PaymentController.getSinglePayment);
+exports.PaymentRoutes = router;
