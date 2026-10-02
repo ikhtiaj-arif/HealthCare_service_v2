@@ -269,13 +269,19 @@ const getMe = async (user: IRequestUser) => {
 			patient: true,
 			// The client uses this as a positive signal that a DOCTOR has a profile,
 			// so every doctor-only screen can explain itself instead of failing a
-			// request. Only the fields that card renders, not the whole row.
+			// request. The extra columns are the ones the doctor can edit on their
+			// profile page — the public profile omits address and contact number,
+			// and 404s until the doctor is approved.
 			doctor: {
 				select: {
 					id: true,
 					name: true,
 					specialization: true,
 					verificationStatus: true,
+					address: true,
+					bio: true,
+					consultationFee: true,
+					contactNumber: true,
 				},
 			},
 		},
