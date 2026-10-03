@@ -36,7 +36,7 @@ const PatientVerifyEmailZodSchema = z.object({
  * reset-password). Re-checking complexity here would lock any account out of its
  * own password — including the seeded SUPER_ADMIN / TESTER_* accounts, which
  * `utils/seed.ts` hashes straight from the env with no complexity check.
- * `LoginForm` already enforces the rules client-side as a UX guard.
+ * The client login form matches this and only requires a non-empty password.
  */
 const LoginZodSchema = z.object({
 	email: z.email(),
